@@ -1,6 +1,7 @@
 package me.mrmango404.cauldron;
 
 import me.mrmango404.utils.ColorLayerManager;
+import me.mrmango404.utils.PermissionManager;
 import me.mrmango404.utils.PotionDataStore;
 import org.bukkit.Color;
 import org.bukkit.Material;
@@ -44,8 +45,10 @@ public class CauldronPotionHandler {
 			PotionDataStore.store(block.getLocation(), type, bottleType);
 			setLevel(1);
 			ColorLayerManager.spawn(block.getLocation(), getPotionColor(type), 1);
-			consumeItem(potion);
-			giveItem(new ItemStack(Material.GLASS_BOTTLE));
+			if (!hasInfinitePotion()) {
+				consumeItem(potion);
+				giveItem(new ItemStack(Material.GLASS_BOTTLE));
+			}
 			player.swingHand(hand);
 			playSound(Sound.ITEM_BOTTLE_EMPTY);
 			return;
@@ -58,8 +61,10 @@ public class CauldronPotionHandler {
 			PotionType existingType = PotionDataStore.getType(block.getLocation()).orElse(null);
 			if (existingType == null || !existingType.equals(type)) {
 				clearCauldron();
-				consumeItem(potion);
-				giveItem(new ItemStack(Material.GLASS_BOTTLE));
+				if (!hasInfinitePotion()) {
+					consumeItem(potion);
+					giveItem(new ItemStack(Material.GLASS_BOTTLE));
+				}
 				playSound(Sound.ENTITY_GENERIC_SPLASH);
 				return;
 			}
@@ -76,8 +81,10 @@ public class CauldronPotionHandler {
 		} else {
 			ColorLayerManager.spawn(block.getLocation(), color, newLevel);
 		}
-		consumeItem(potion);
-		giveItem(new ItemStack(Material.GLASS_BOTTLE));
+		if (!hasInfinitePotion()) {
+			consumeItem(potion);
+			giveItem(new ItemStack(Material.GLASS_BOTTLE));
+		}
 		player.swingHand(hand);
 		playSound(Sound.ITEM_BOTTLE_EMPTY);
 	}
@@ -92,7 +99,7 @@ public class CauldronPotionHandler {
 		int currentLevel = getLevel();
 		if (currentLevel <= 0) return;
 
-		consumeItem(getItemInHand());
+		if (!hasInfinitePotion()) consumeItem(getItemInHand());
 		giveItem(buildPotion(type, bottleType));
 		player.swingHand(hand);
 
@@ -118,15 +125,21 @@ public class CauldronPotionHandler {
 		int convert = Math.min(arrows.getAmount(), maxConvert);
 		if (convert <= 0) return;
 
-		arrows.setAmount(arrows.getAmount() - convert);
-		if (arrows.getAmount() <= 0) {
-			setItemInHand(new ItemStack(Material.AIR));
+		if (!hasInfinitePotion()) {
+			arrows.setAmount(arrows.getAmount() - convert);
+			if (arrows.getAmount() <= 0) {
+				setItemInHand(new ItemStack(Material.AIR));
+			}
 		}
 
 		giveItem(buildTippedArrows(type, convert));
 		clearCauldron();
 		player.swingHand(hand);
 		playSound(Sound.ENTITY_PLAYER_SPLASH);
+	}
+
+	private boolean hasInfinitePotion() {
+		return PermissionManager.hasPermission(player, PermissionManager.INFINITE_POTION);
 	}
 
 	private void clearCauldron() {

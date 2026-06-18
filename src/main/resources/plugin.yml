@@ -5,5 +5,24 @@ api-version: '1.20'
 folia-supported: true
 description: A Minecraft plugin that lets you dye cauldrons with RGB colors, and use them to dye items just like Bedrock Edition.
 author: oMango
+permissions:
+  universalcauldron.use:
+    description: Allows player to dye, wash, and clean cauldrons and items.
+    default: true
+  universalcauldron.use.potion:
+    description: Allows player to use potion cauldrons.
+    default: true
+  universalcauldron.infinite.dye:
+    description: Allows player to dye cauldrons without consuming dye.
+    default: op
+  universalcauldron.infinite.water:
+    description: Allows player to use cauldron water without consuming it.
+    default: op
+  universalcauldron.infinite.potion:
+    description: Allows player to use potion cauldrons without consuming potions, bottles, or arrows.
+    default: op
+  universalcauldron.reload:
+    description: Allows player to reload the plugin.
+    default: op
 commands:
   unicauldron:

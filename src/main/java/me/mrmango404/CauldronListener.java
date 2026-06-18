@@ -33,7 +33,6 @@ public class CauldronListener implements Listener {
 		Player player = event.getPlayer();
 
 		if (ConfigHandler.Settings.DISABLED_WORLD.stream().anyMatch(player.getWorld().getName()::equals)) return;
-		if (!PermissionManager.hasPermission(player, PermissionManager.INTERACTION)) return;
 		if (event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
 
 		EquipmentSlot hand = event.getHand();
@@ -44,7 +43,7 @@ public class CauldronListener implements Listener {
 		Material materialInHand = itemInHand.getType();
 
 		if (block.getType() == Material.CAULDRON) {
-			if (isPotion(materialInHand)) {
+			if (isPotion(materialInHand) && PermissionManager.hasPermission(player, PermissionManager.POTION_INTERACTION)) {
 				event.setUseItemInHand(Event.Result.DENY);
 				event.setUseInteractedBlock(Event.Result.DENY);
 				event.setCancelled(true);
@@ -56,6 +55,7 @@ public class CauldronListener implements Listener {
 		if (block.getType() != Material.WATER_CAULDRON) return;
 
 		if (PotionDataStore.has(block.getLocation())) {
+			if (!PermissionManager.hasPermission(player, PermissionManager.POTION_INTERACTION)) return;
 			event.setUseItemInHand(Event.Result.DENY);
 			event.setUseInteractedBlock(Event.Result.DENY);
 			event.setCancelled(true);
@@ -72,7 +72,8 @@ public class CauldronListener implements Listener {
 		}
 
 		if (isPotion(materialInHand)) {
-			if (ColorLayerManager.getEntity(block.getLocation()).isEmpty()) {
+			if (PermissionManager.hasPermission(player, PermissionManager.POTION_INTERACTION)
+					&& ColorLayerManager.getEntity(block.getLocation()).isEmpty()) {
 				event.setUseItemInHand(Event.Result.DENY);
 				event.setUseInteractedBlock(Event.Result.DENY);
 				event.setCancelled(true);
@@ -80,6 +81,8 @@ public class CauldronListener implements Listener {
 			}
 			return;
 		}
+
+		if (!PermissionManager.hasPermission(player, PermissionManager.INTERACTION)) return;
 
 		Material washItem = Material.getMaterial(ConfigHandler.Settings.WASH_ITEM.toUpperCase());
 
