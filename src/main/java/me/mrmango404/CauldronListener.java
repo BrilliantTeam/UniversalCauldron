@@ -1,10 +1,14 @@
 package me.mrmango404;
 
+import com.bekvon.bukkit.residence.containers.Flags;
+import com.bekvon.bukkit.residence.containers.lm;
+import com.bekvon.bukkit.residence.protection.FlagPermissions;
 import me.mrmango404.cauldron.CauldronCleanHandler;
 import me.mrmango404.cauldron.CauldronDyeHandler;
 import me.mrmango404.cauldron.CauldronPotionHandler;
 import me.mrmango404.cauldron.ItemDyeWashHandler;
 import me.mrmango404.utils.*;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -44,6 +48,7 @@ public class CauldronListener implements Listener {
 
 		if (block.getType() == Material.CAULDRON) {
 			if (isPotion(materialInHand) && PermissionManager.hasPermission(player, PermissionManager.POTION_INTERACTION)) {
+				if (!hasResidencePermission(player, block.getLocation(), Flags.container)) return;
 				event.setUseItemInHand(Event.Result.DENY);
 				event.setUseInteractedBlock(Event.Result.DENY);
 				event.setCancelled(true);
@@ -56,6 +61,7 @@ public class CauldronListener implements Listener {
 
 		if (PotionDataStore.has(block.getLocation())) {
 			if (!PermissionManager.hasPermission(player, PermissionManager.POTION_INTERACTION)) return;
+			if (!hasResidencePermission(player, block.getLocation(), Flags.container)) return;
 			event.setUseItemInHand(Event.Result.DENY);
 			event.setUseInteractedBlock(Event.Result.DENY);
 			event.setCancelled(true);
@@ -74,6 +80,7 @@ public class CauldronListener implements Listener {
 		if (isPotion(materialInHand)) {
 			if (PermissionManager.hasPermission(player, PermissionManager.POTION_INTERACTION)
 					&& ColorLayerManager.getEntity(block.getLocation()).isEmpty()) {
+				if (!hasResidencePermission(player, block.getLocation(), Flags.container)) return;
 				event.setUseItemInHand(Event.Result.DENY);
 				event.setUseInteractedBlock(Event.Result.DENY);
 				event.setCancelled(true);
@@ -89,6 +96,7 @@ public class CauldronListener implements Listener {
 		if (materialInHand == washItem) {
 			new CauldronCleanHandler(block, player, hand).handle();
 		} else if (ColorManager.DyeItemColor.fromMaterial(materialInHand).isPresent()) {
+			if (!hasResidencePermission(player, block.getLocation(), Flags.dye)) return;
 			new CauldronDyeHandler(block, player, hand).handle();
 		} else {
 			if (new ItemMatcher(itemInHand).isItemDyeable()) {
@@ -195,6 +203,16 @@ public class CauldronListener implements Listener {
 				}
 			});
 		});
+	}
+
+	private boolean hasResidencePermission(Player player, Location loc, Flags flag) {
+		if (!Bukkit.getServer().getPluginManager().isPluginEnabled("Residence")) return true;
+		boolean hasPerm = FlagPermissions.has(loc, player, flag, true);
+		if (!hasPerm) {
+			player.sendActionBar(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection()
+					.deserialize(lm.Flag_Deny.getMessage(flag.toString())));
+		}
+		return hasPerm;
 	}
 
 	private static boolean isPotion(Material material) {

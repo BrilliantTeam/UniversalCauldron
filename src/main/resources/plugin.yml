@@ -3,6 +3,7 @@ version: '${project.version}'
 main: me.mrmango404.UniversalCauldron
 api-version: '1.20'
 folia-supported: true
+softdepend: [Residence]
 description: A Minecraft plugin that lets you dye cauldrons with RGB colors, and use them to dye items just like Bedrock Edition.
 author: oMango
 permissions:
