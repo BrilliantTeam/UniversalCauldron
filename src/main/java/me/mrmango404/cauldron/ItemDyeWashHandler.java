@@ -29,9 +29,9 @@ public class ItemDyeWashHandler extends ICHandler {
 	private final ItemStack itemInHand;
 	private final ItemMeta itemMeta;
 
-	public ItemDyeWashHandler(Block block, Player player) {
-		super(block, player);
-		itemInHand = player.getInventory().getItemInMainHand();
+	public ItemDyeWashHandler(Block block, Player player, EquipmentSlot hand) {
+		super(block, player, hand);
+		itemInHand = getItemInHand();
 		itemMeta = itemInHand.getItemMeta();
 	}
 
@@ -76,7 +76,7 @@ public class ItemDyeWashHandler extends ICHandler {
 					newMeta.setBlockState(oldBox);
 					newItem.setItemMeta(newMeta);
 
-					player.getInventory().setItemInMainHand(newItem);
+					setItemInHand(newItem);
 					consumeWater(blockLoc, player);
 				}
 			}
@@ -139,7 +139,7 @@ public class ItemDyeWashHandler extends ICHandler {
 						newMeta.setBlockState(oldBox);
 						newItem.setItemMeta(newMeta);
 
-						player.getInventory().setItemInMainHand(newItem);
+						setItemInHand(newItem);
 						consumeWater(blockLoc, player);
 					}
 				}
@@ -206,7 +206,7 @@ public class ItemDyeWashHandler extends ICHandler {
 			}
 
 			new SpecialEffect(location).play(SpecialEffect.EffectType.DYE_N_WASH_ITEM);
-			player.swingHand(EquipmentSlot.HAND);
+			player.swingHand(hand);
 		}
 	}
 
@@ -214,7 +214,7 @@ public class ItemDyeWashHandler extends ICHandler {
 		ItemStack newItem = new ItemStack(material);
 		newItem.setAmount(itemInHand.getAmount());
 		newItem.setItemMeta(itemMeta);
-		player.getInventory().setItemInMainHand(newItem);
+		setItemInHand(newItem);
 	}
 
 	/**
@@ -250,10 +250,8 @@ public class ItemDyeWashHandler extends ICHandler {
 				}
 
 				if (undyedAmount <= amountPerDye) {
-					int handSlot = inventory.getHeldItemSlot();
 					ItemStack newItem = createDyedItem(color, addSub, material);
-					inventory.setItem(handSlot, newItem);
-					itemInHand.setAmount(undyedAmount - addSub);
+					setItemInHand(newItem);
 					return true;
 				}
 			}
@@ -309,7 +307,7 @@ public class ItemDyeWashHandler extends ICHandler {
 			if (isItemWashEventCancelled()) return;
 			oldMeta.setColor(null);
 			newItem.setItemMeta(oldMeta);
-			player.getInventory().setItemInMainHand(newItem);
+			setItemInHand(newItem);
 			consumeWater(blockLoc, player);
 		}
 	}

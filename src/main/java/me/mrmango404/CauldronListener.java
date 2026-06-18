@@ -34,17 +34,21 @@ public class CauldronListener implements Listener {
 
 		if (ConfigHandler.Settings.DISABLED_WORLD.stream().anyMatch(player.getWorld().getName()::equals)) return;
 		if (!PermissionManager.hasPermission(player, PermissionManager.INTERACTION)) return;
-		if (event.getAction() != Action.RIGHT_CLICK_BLOCK || event.getHand() != EquipmentSlot.HAND) return;
+		if (event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
 
+		EquipmentSlot hand = event.getHand();
 		Block block = event.getClickedBlock();
-		Material materialInHand = player.getInventory().getItemInMainHand().getType();
+		ItemStack itemInHand = hand == EquipmentSlot.HAND
+				? player.getInventory().getItemInMainHand()
+				: player.getInventory().getItemInOffHand();
+		Material materialInHand = itemInHand.getType();
 
 		if (block.getType() == Material.CAULDRON) {
 			if (isPotion(materialInHand)) {
 				event.setUseItemInHand(Event.Result.DENY);
 				event.setUseInteractedBlock(Event.Result.DENY);
 				event.setCancelled(true);
-				new CauldronPotionHandler(block, player).handlePourPotion(player.getInventory().getItemInMainHand());
+				new CauldronPotionHandler(block, player, hand).handlePourPotion(itemInHand);
 			}
 			return;
 		}
@@ -56,13 +60,13 @@ public class CauldronListener implements Listener {
 			event.setUseInteractedBlock(Event.Result.DENY);
 			event.setCancelled(true);
 
-			CauldronPotionHandler handler = new CauldronPotionHandler(block, player);
+			CauldronPotionHandler handler = new CauldronPotionHandler(block, player, hand);
 			if (isPotion(materialInHand)) {
-				handler.handlePourPotion(player.getInventory().getItemInMainHand());
+				handler.handlePourPotion(itemInHand);
 			} else if (materialInHand == Material.GLASS_BOTTLE) {
 				handler.handleTakePotion();
 			} else if (materialInHand == Material.ARROW) {
-				handler.handleDipArrows(player.getInventory().getItemInMainHand());
+				handler.handleDipArrows(itemInHand);
 			}
 			return;
 		}
@@ -72,7 +76,7 @@ public class CauldronListener implements Listener {
 				event.setUseItemInHand(Event.Result.DENY);
 				event.setUseInteractedBlock(Event.Result.DENY);
 				event.setCancelled(true);
-				new CauldronPotionHandler(block, player).handlePourPotion(player.getInventory().getItemInMainHand());
+				new CauldronPotionHandler(block, player, hand).handlePourPotion(itemInHand);
 			}
 			return;
 		}
@@ -80,16 +84,15 @@ public class CauldronListener implements Listener {
 		Material washItem = Material.getMaterial(ConfigHandler.Settings.WASH_ITEM.toUpperCase());
 
 		if (materialInHand == washItem) {
-			new CauldronCleanHandler(block, player).handle();
+			new CauldronCleanHandler(block, player, hand).handle();
 		} else if (ColorManager.DyeItemColor.fromMaterial(materialInHand).isPresent()) {
-			new CauldronDyeHandler(block, player).handle();
+			new CauldronDyeHandler(block, player, hand).handle();
 		} else {
-			ItemStack itemInHand = player.getInventory().getItemInMainHand();
 			if (new ItemMatcher(itemInHand).isItemDyeable()) {
 				event.setUseItemInHand(Event.Result.DENY);
 				event.setUseInteractedBlock(Event.Result.DENY);
 				event.setCancelled(true);
-				new ItemDyeWashHandler(block, player).handle();
+				new ItemDyeWashHandler(block, player, hand).handle();
 			}
 		}
 	}

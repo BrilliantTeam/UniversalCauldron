@@ -11,8 +11,8 @@ import org.bukkit.inventory.EquipmentSlot;
  */
 public class CauldronCleanHandler extends ICHandler {
 
-	public CauldronCleanHandler(Block block, Player player) {
-		super(block, player);
+	public CauldronCleanHandler(Block block, Player player, EquipmentSlot hand) {
+		super(block, player, hand);
 	}
 
 	@Override
@@ -21,7 +21,7 @@ public class CauldronCleanHandler extends ICHandler {
 			if (isCauldronCleanEventCancelled(entity)) return;
 			new SpecialEffect(blockLoc).play(SpecialEffect.EffectType.CLEAR_CAULDRON);
 			ColorLayerManager.remove(blockLoc);
-			player.swingHand(EquipmentSlot.HAND);
+			player.swingHand(hand);
 		});
 	}
 }

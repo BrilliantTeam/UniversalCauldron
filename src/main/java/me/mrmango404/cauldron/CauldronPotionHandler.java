@@ -24,10 +24,12 @@ public class CauldronPotionHandler {
 
 	private final Block block;
 	private final Player player;
+	private final EquipmentSlot hand;
 
-	public CauldronPotionHandler(Block block, Player player) {
+	public CauldronPotionHandler(Block block, Player player, EquipmentSlot hand) {
 		this.block = block;
 		this.player = player;
+		this.hand = hand;
 	}
 
 	public void handlePourPotion(ItemStack potion) {
@@ -44,7 +46,7 @@ public class CauldronPotionHandler {
 			ColorLayerManager.spawn(block.getLocation(), getPotionColor(type), 1);
 			consumeItem(potion);
 			giveItem(new ItemStack(Material.GLASS_BOTTLE));
-			player.swingHand(EquipmentSlot.HAND);
+			player.swingHand(hand);
 			playSound(Sound.ITEM_BOTTLE_EMPTY);
 			return;
 		}
@@ -76,7 +78,7 @@ public class CauldronPotionHandler {
 		}
 		consumeItem(potion);
 		giveItem(new ItemStack(Material.GLASS_BOTTLE));
-		player.swingHand(EquipmentSlot.HAND);
+		player.swingHand(hand);
 		playSound(Sound.ITEM_BOTTLE_EMPTY);
 	}
 
@@ -90,9 +92,9 @@ public class CauldronPotionHandler {
 		int currentLevel = getLevel();
 		if (currentLevel <= 0) return;
 
-		consumeItem(player.getInventory().getItemInMainHand());
+		consumeItem(getItemInHand());
 		giveItem(buildPotion(type, bottleType));
-		player.swingHand(EquipmentSlot.HAND);
+		player.swingHand(hand);
 
 		if (currentLevel - 1 == 0) {
 			clearCauldron();
@@ -118,12 +120,12 @@ public class CauldronPotionHandler {
 
 		arrows.setAmount(arrows.getAmount() - convert);
 		if (arrows.getAmount() <= 0) {
-			player.getInventory().setItemInMainHand(new ItemStack(Material.AIR));
+			setItemInHand(new ItemStack(Material.AIR));
 		}
 
 		giveItem(buildTippedArrows(type, convert));
 		clearCauldron();
-		player.swingHand(EquipmentSlot.HAND);
+		player.swingHand(hand);
 		playSound(Sound.ENTITY_PLAYER_SPLASH);
 	}
 
@@ -173,9 +175,23 @@ public class CauldronPotionHandler {
 		return item;
 	}
 
+	private ItemStack getItemInHand() {
+		return hand == EquipmentSlot.HAND
+				? player.getInventory().getItemInMainHand()
+				: player.getInventory().getItemInOffHand();
+	}
+
+	private void setItemInHand(ItemStack item) {
+		if (hand == EquipmentSlot.HAND) {
+			player.getInventory().setItemInMainHand(item);
+		} else {
+			player.getInventory().setItemInOffHand(item);
+		}
+	}
+
 	private void consumeItem(ItemStack item) {
 		if (item.getAmount() <= 1) {
-			player.getInventory().setItemInMainHand(new ItemStack(Material.AIR));
+			setItemInHand(new ItemStack(Material.AIR));
 		} else {
 			item.setAmount(item.getAmount() - 1);
 		}

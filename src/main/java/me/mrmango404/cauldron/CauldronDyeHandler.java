@@ -13,6 +13,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.inventory.EquipmentSlot;
 
+
 import java.util.Optional;
 
 /**
@@ -23,10 +24,10 @@ public class CauldronDyeHandler extends ICHandler {
 	private final BlockData data;
 	private final Material materialInHand;
 
-	public CauldronDyeHandler(Block block, Player player) {
-		super(block, player);
+	public CauldronDyeHandler(Block block, Player player, EquipmentSlot hand) {
+		super(block, player, hand);
 		this.data = block.getBlockData();
-		this.materialInHand = player.getInventory().getItemInMainHand().getType();
+		this.materialInHand = getItemInHand().getType();
 	}
 
 	// Dye the cauldron.
@@ -53,7 +54,7 @@ public class CauldronDyeHandler extends ICHandler {
 					ColorLayerManager.update(blockLoc, newColor, waterLevel);
 					consumeDye();
 					new SpecialEffect(blockLoc, newColor).play(SpecialEffect.EffectType.DYE_CAULDRON);
-					player.swingHand(EquipmentSlot.HAND);
+					player.swingHand(hand);
 				}
 			} else {
 				if (isCauldronDyeEventCancelled(null)) return;
