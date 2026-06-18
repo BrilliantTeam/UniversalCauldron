@@ -7,7 +7,9 @@ public final class SpecialEffect {
 	public enum EffectType {
 		DYE_CAULDRON,
 		CLEAR_CAULDRON,
-		DYE_N_WASH_ITEM
+		DYE_N_WASH_ITEM,
+		POTION_FILL,
+		WRONG_POTION
 	}
 
 	private final World world;
@@ -37,6 +39,14 @@ public final class SpecialEffect {
 			}
 			case DYE_N_WASH_ITEM -> {
 				dyeNWashItemSound();
+			}
+			case POTION_FILL -> {
+				dyeCauldronParticle();
+				potionFillSound();
+			}
+			case WRONG_POTION -> {
+				wrongPotionParticle();
+				wrongPotionSound();
 			}
 		}
 	}
@@ -69,6 +79,22 @@ public final class SpecialEffect {
 			return;
 		}
 		world.playSound(location, Sound.ITEM_BRUSH_BRUSHING_SAND_COMPLETE, 1f, 0.7f);
+	}
+
+	private void potionFillSound() {
+		if (!isSoundPlayable()) return;
+		world.playSound(location, Sound.ITEM_BOTTLE_EMPTY, 1f, 1f);
+	}
+
+	private void wrongPotionParticle() {
+		if (!ConfigHandler.Settings.ENABLE_PARTICLE_EFFECTS) return;
+		Particle.DustOptions option = new Particle.DustOptions(Color.fromRGB(0x1A0A30), 1.2f);
+		world.spawnParticle(Particle.DUST, location, 20, 0.25, 0.25, 0.25, option);
+	}
+
+	private void wrongPotionSound() {
+		if (!isSoundPlayable()) return;
+		world.playSound(location, Sound.ENTITY_GENERIC_SPLASH, 1f, 0.8f);
 	}
 
 	private boolean isSoundPlayable() {

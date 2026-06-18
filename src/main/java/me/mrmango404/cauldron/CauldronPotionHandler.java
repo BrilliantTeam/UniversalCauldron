@@ -3,6 +3,7 @@ package me.mrmango404.cauldron;
 import me.mrmango404.utils.ColorLayerManager;
 import me.mrmango404.utils.PermissionManager;
 import me.mrmango404.utils.PotionDataStore;
+import me.mrmango404.utils.SpecialEffect;
 import org.bukkit.Color;
 import org.bukkit.Material;
 import org.bukkit.Sound;
@@ -50,7 +51,7 @@ public class CauldronPotionHandler {
 				giveItem(new ItemStack(Material.GLASS_BOTTLE));
 			}
 			player.swingHand(hand);
-			playSound(Sound.ITEM_BOTTLE_EMPTY);
+			new SpecialEffect(block.getLocation(), getPotionColor(type)).play(SpecialEffect.EffectType.POTION_FILL);
 			return;
 		}
 
@@ -65,7 +66,7 @@ public class CauldronPotionHandler {
 					consumeItem(potion);
 					giveItem(new ItemStack(Material.GLASS_BOTTLE));
 				}
-				playSound(Sound.ENTITY_GENERIC_SPLASH);
+				new SpecialEffect(block.getLocation()).play(SpecialEffect.EffectType.WRONG_POTION);
 				return;
 			}
 			PotionDataStore.updateBottleType(block.getLocation(), bottleType);
@@ -86,7 +87,7 @@ public class CauldronPotionHandler {
 			giveItem(new ItemStack(Material.GLASS_BOTTLE));
 		}
 		player.swingHand(hand);
-		playSound(Sound.ITEM_BOTTLE_EMPTY);
+		new SpecialEffect(block.getLocation(), color).play(SpecialEffect.EffectType.POTION_FILL);
 	}
 
 	public void handleTakePotion() {
