@@ -1,8 +1,10 @@
 package me.mrmango404.utils;
 
 import me.mrmango404.UniversalCauldron;
+import org.bukkit.Chunk;
 import org.bukkit.Color;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.TextDisplay;
@@ -61,6 +63,7 @@ public class ColorLayerManager {
 			entity.setPersistent(true);
 			setPosition(entity, waterLevel);
 			setColor(entity, color);
+			PersistentDataSetter.storeDisplayUUID(location, entity.getUniqueId());
 		});
 	}
 
@@ -82,15 +85,39 @@ public class ColorLayerManager {
 
 	public static void remove(Location location) {
 		getEntity(location).ifPresent(Entity::remove);
+		PersistentDataSetter.removeDisplayUUID(location);
 	}
 
-	/**
-	 * Retrieves the color layer (TextDisplay) from a cauldron.
-	 * Only one layer is allowed, additional layers found will be removed.
-	 *
-	 * @param location The location of the cauldron.
-	 * @return An Optional containing the first TextDisplay entity, or null if not found.
-	 */
+	public static void move(Location oldLocation, Location newLocation) {
+		getEntity(oldLocation).ifPresent(textDisplay ->
+				PersistentDataSetter.getColorData(textDisplay).ifPresent(color -> {
+					PersistentDataSetter.removeDisplayUUID(oldLocation);
+					teleport(textDisplay, newLocation);
+					PersistentDataSetter.storeDisplayUUID(newLocation, textDisplay.getUniqueId());
+				}));
+	}
+
+	public static void cleanupChunk(Chunk chunk) {
+		for (Location loc : PersistentDataSetter.getDisplayLocations(chunk)) {
+			if (loc.getBlock().getType() != Material.WATER_CAULDRON) {
+				remove(loc);
+			}
+		}
+
+		for (Entity entity : chunk.getEntities()) {
+			if (entity instanceof TextDisplay textDisplay && PersistentDataSetter.hasColorData(textDisplay)) {
+				Location loc = textDisplay.getLocation();
+				if (!PersistentDataSetter.hasDisplayUUID(loc)) {
+					if (loc.getBlock().getType() != Material.WATER_CAULDRON) {
+						entity.remove();
+					} else {
+						PersistentDataSetter.storeDisplayUUID(loc, entity.getUniqueId());
+					}
+				}
+			}
+		}
+	}
+
 	public static Optional<TextDisplay> getEntity(Location location) {
 		final double searchRadius = 0.5;
 

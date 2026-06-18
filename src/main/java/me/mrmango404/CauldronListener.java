@@ -16,8 +16,10 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.*;
+import org.bukkit.Chunk;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 
@@ -60,10 +62,14 @@ public class CauldronListener implements Listener {
 	}
 
 
+	@EventHandler(priority = EventPriority.MONITOR)
+	public void onChunkLoad(ChunkLoadEvent event) {
+		ColorLayerManager.cleanupChunk(event.getChunk());
+	}
+
 	/**
 	 * Despawns the color layer when a cauldron is broken.
 	 */
-	// stayed after breaking -> works
 	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
 	public void onBreak(BlockBreakEvent event) {
 		Location location = event.getBlock().getLocation();
