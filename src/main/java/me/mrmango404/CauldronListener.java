@@ -2,6 +2,7 @@ package me.mrmango404;
 
 import me.mrmango404.cauldron.CauldronCleanHandler;
 import me.mrmango404.cauldron.CauldronDyeHandler;
+import me.mrmango404.cauldron.CauldronPotionHandler;
 import me.mrmango404.cauldron.ItemDyeWashHandler;
 import me.mrmango404.utils.*;
 import org.bukkit.Location;
@@ -29,21 +30,53 @@ public class CauldronListener implements Listener {
 
 	@EventHandler(ignoreCancelled = true)
 	public void onCauldronInteraction(PlayerInteractEvent event) {
-		Block block;
-		Material materialInHand;
 		Player player = event.getPlayer();
 
 		if (ConfigHandler.Settings.DISABLED_WORLD.stream().anyMatch(player.getWorld().getName()::equals)) return;
 		if (!PermissionManager.hasPermission(player, PermissionManager.INTERACTION)) return;
 		if (event.getAction() != Action.RIGHT_CLICK_BLOCK || event.getHand() != EquipmentSlot.HAND) return;
 
-		block = event.getClickedBlock();
-		materialInHand = player.getInventory().getItemInMainHand().getType();
+		Block block = event.getClickedBlock();
+		Material materialInHand = player.getInventory().getItemInMainHand().getType();
+
+		if (block.getType() == Material.CAULDRON) {
+			if (isPotion(materialInHand)) {
+				event.setUseItemInHand(Event.Result.DENY);
+				event.setUseInteractedBlock(Event.Result.DENY);
+				event.setCancelled(true);
+				new CauldronPotionHandler(block, player).handlePourPotion(player.getInventory().getItemInMainHand());
+			}
+			return;
+		}
 
 		if (block.getType() != Material.WATER_CAULDRON) return;
 
-		// Resets the color of the cauldron by removing the color layer.
-		// Triggered by right-clicking the cauldron using a cleaner item.
+		if (PotionDataStore.has(block.getLocation())) {
+			event.setUseItemInHand(Event.Result.DENY);
+			event.setUseInteractedBlock(Event.Result.DENY);
+			event.setCancelled(true);
+
+			CauldronPotionHandler handler = new CauldronPotionHandler(block, player);
+			if (isPotion(materialInHand)) {
+				handler.handlePourPotion(player.getInventory().getItemInMainHand());
+			} else if (materialInHand == Material.GLASS_BOTTLE) {
+				handler.handleTakePotion();
+			} else if (materialInHand == Material.ARROW) {
+				handler.handleDipArrows(player.getInventory().getItemInMainHand());
+			}
+			return;
+		}
+
+		if (isPotion(materialInHand)) {
+			if (ColorLayerManager.getEntity(block.getLocation()).isEmpty()) {
+				event.setUseItemInHand(Event.Result.DENY);
+				event.setUseInteractedBlock(Event.Result.DENY);
+				event.setCancelled(true);
+				new CauldronPotionHandler(block, player).handlePourPotion(player.getInventory().getItemInMainHand());
+			}
+			return;
+		}
+
 		Material washItem = Material.getMaterial(ConfigHandler.Settings.WASH_ITEM.toUpperCase());
 
 		if (materialInHand == washItem) {
@@ -61,19 +94,17 @@ public class CauldronListener implements Listener {
 		}
 	}
 
-
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onChunkLoad(ChunkLoadEvent event) {
 		ColorLayerManager.cleanupChunk(event.getChunk());
+		PotionDataStore.cleanupChunk(event.getChunk());
 	}
 
-	/**
-	 * Despawns the color layer when a cauldron is broken.
-	 */
 	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
 	public void onBreak(BlockBreakEvent event) {
 		Location location = event.getBlock().getLocation();
 		ColorLayerManager.remove(location);
+		PotionDataStore.remove(location);
 	}
 
 	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -86,9 +117,6 @@ public class CauldronListener implements Listener {
 		onExplosion(event.blockList());
 	}
 
-	/**
-	 * Moves the color layer when its cauldron is pushed or pulled by a piston.
-	 */
 	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
 	public void onPistonExtend(BlockPistonExtendEvent event) {
 		onPiston(event, event.getBlocks());
@@ -111,6 +139,14 @@ public class CauldronListener implements Listener {
 					ColorLayerManager.teleport(textDisplay, newLoc);
 				});
 			});
+
+			if (PotionDataStore.has(oldLoc)) {
+				PotionDataStore.getType(oldLoc).ifPresent(type -> {
+					Material bottleType = PotionDataStore.getBottleType(oldLoc);
+					PotionDataStore.remove(oldLoc);
+					PotionDataStore.store(newLoc, type, bottleType);
+				});
+			}
 		}
 	}
 
@@ -118,13 +154,11 @@ public class CauldronListener implements Listener {
 		for (Block block : blocks) {
 			if (block.getType() == Material.WATER_CAULDRON) {
 				ColorLayerManager.remove(block.getLocation());
+				PotionDataStore.remove(block.getLocation());
 			}
 		}
 	}
 
-	/**
-	 * Updates the position of the color layer to match the cauldron's water level change.
-	 */
 	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
 	public void onWaterLevelChange(CauldronLevelChangeEvent event) {
 		Location location = event.getBlock().getLocation();
@@ -134,11 +168,17 @@ public class CauldronListener implements Listener {
 
 		if (!(newData instanceof Levelled) || material != Material.WATER_CAULDRON) {
 			ColorLayerManager.remove(location);
+			PotionDataStore.remove(location);
 			return;
 		}
 
 		int newLevel = ((Levelled) newData).getLevel();
 		int oldLevel = oldData instanceof Levelled ? ((Levelled) oldData).getLevel() : 0;
+
+		if (newLevel > oldLevel && PotionDataStore.has(location)) {
+			PotionDataStore.remove(location);
+			ColorLayerManager.remove(location);
+		}
 
 		ColorLayerManager.getEntity(location).ifPresent(textDisplay -> {
 			PersistentDataSetter.getColorData(textDisplay).ifPresent(entityColor -> {
@@ -149,5 +189,11 @@ public class CauldronListener implements Listener {
 				}
 			});
 		});
+	}
+
+	private static boolean isPotion(Material material) {
+		return material == Material.POTION
+				|| material == Material.SPLASH_POTION
+				|| material == Material.LINGERING_POTION;
 	}
 }
