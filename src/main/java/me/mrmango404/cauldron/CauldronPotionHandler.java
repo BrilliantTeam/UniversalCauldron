@@ -122,7 +122,7 @@ public class CauldronPotionHandler {
 		if (type == null) return;
 
 		int level = getLevel();
-		int maxConvert = level * 16;
+		int maxConvert = 16 << (level - 1);
 		int convert = Math.min(arrows.getAmount(), maxConvert);
 		if (convert <= 0) return;
 
