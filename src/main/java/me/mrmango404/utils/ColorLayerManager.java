@@ -63,7 +63,7 @@ public class ColorLayerManager {
 			entity.setPersistent(true);
 			setPosition(entity, waterLevel);
 			setColor(entity, color);
-			PersistentDataSetter.storeDisplayUUID(location, entity.getUniqueId());
+			PersistentDataSetter.storeDisplayUUID(location);
 		});
 	}
 
@@ -93,7 +93,7 @@ public class ColorLayerManager {
 				PersistentDataSetter.getColorData(textDisplay).ifPresent(color -> {
 					PersistentDataSetter.removeDisplayUUID(oldLocation);
 					teleport(textDisplay, newLocation);
-					PersistentDataSetter.storeDisplayUUID(newLocation, textDisplay.getUniqueId());
+					PersistentDataSetter.storeDisplayUUID(newLocation);
 				}));
 	}
 
@@ -111,7 +111,7 @@ public class ColorLayerManager {
 					if (loc.getBlock().getType() != Material.WATER_CAULDRON) {
 						entity.remove();
 					} else {
-						PersistentDataSetter.storeDisplayUUID(loc, entity.getUniqueId());
+						PersistentDataSetter.storeDisplayUUID(loc);
 					}
 				}
 			}
