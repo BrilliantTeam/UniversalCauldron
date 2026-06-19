@@ -16,40 +16,76 @@ import java.util.Optional;
 public class PotionDataStore {
 
 	private static final UniversalCauldron plugin = UniversalCauldron.getInstance();
+	private static final NamespacedKey POT_DATA = new NamespacedKey(plugin, "pot_data");
 
-	private static NamespacedKey key(Location loc) {
-		return new NamespacedKey(plugin, "pot_" + loc.getBlockX() + "_" + loc.getBlockY() + "_" + loc.getBlockZ());
+	private static List<String> getList(Chunk chunk) {
+		return new ArrayList<>(chunk.getPersistentDataContainer()
+				.getOrDefault(POT_DATA, PersistentDataType.LIST.strings(), List.of()));
+	}
+
+	private static void saveList(Chunk chunk, List<String> list) {
+		PersistentDataContainer pdc = chunk.getPersistentDataContainer();
+		if (list.isEmpty()) {
+			pdc.remove(POT_DATA);
+		} else {
+			pdc.set(POT_DATA, PersistentDataType.LIST.strings(), list);
+		}
+	}
+
+	private static String encode(Location loc, PotionType type, Material bottleType) {
+		return loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ()
+				+ "," + type.name() + "," + bottleType.name();
+	}
+
+	private static boolean matchesLoc(String entry, Location loc) {
+		return entry.startsWith(loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ() + ",");
 	}
 
 	public static void store(Location loc, PotionType type, Material bottleType) {
-		loc.getChunk().getPersistentDataContainer()
-				.set(key(loc), PersistentDataType.STRING, type.name() + "|" + bottleType.name());
+		Chunk chunk = loc.getChunk();
+		List<String> list = getList(chunk);
+		String encoded = encode(loc, type, bottleType);
+		boolean found = false;
+		for (int i = 0; i < list.size(); i++) {
+			if (matchesLoc(list.get(i), loc)) {
+				list.set(i, encoded);
+				found = true;
+				break;
+			}
+		}
+		if (!found) list.add(encoded);
+		saveList(chunk, list);
 	}
 
 	public static boolean has(Location loc) {
-		return loc.getChunk().getPersistentDataContainer().has(key(loc));
+		return getList(loc.getChunk()).stream().anyMatch(e -> matchesLoc(e, loc));
 	}
 
 	public static Optional<PotionType> getType(Location loc) {
-		String raw = loc.getChunk().getPersistentDataContainer().get(key(loc), PersistentDataType.STRING);
-		if (raw == null) return Optional.empty();
-		try {
-			return Optional.of(PotionType.valueOf(raw.split("\\|")[0]));
-		} catch (IllegalArgumentException e) {
-			return Optional.empty();
-		}
+		return getList(loc.getChunk()).stream()
+				.filter(e -> matchesLoc(e, loc))
+				.findFirst()
+				.map(e -> {
+					try {
+						return PotionType.valueOf(e.split(",", 5)[3]);
+					} catch (IllegalArgumentException ex) {
+						return null;
+					}
+				});
 	}
 
 	public static Material getBottleType(Location loc) {
-		String raw = loc.getChunk().getPersistentDataContainer().get(key(loc), PersistentDataType.STRING);
-		if (raw == null) return Material.POTION;
-		String[] parts = raw.split("\\|");
-		if (parts.length < 2) return Material.POTION;
-		try {
-			return Material.valueOf(parts[1]);
-		} catch (IllegalArgumentException e) {
-			return Material.POTION;
-		}
+		return getList(loc.getChunk()).stream()
+				.filter(e -> matchesLoc(e, loc))
+				.findFirst()
+				.map(e -> {
+					try {
+						return Material.valueOf(e.split(",", 5)[4]);
+					} catch (IllegalArgumentException ex) {
+						return Material.POTION;
+					}
+				})
+				.orElse(Material.POTION);
 	}
 
 	public static void updateBottleType(Location loc, Material bottleType) {
@@ -57,32 +93,26 @@ public class PotionDataStore {
 	}
 
 	public static void remove(Location loc) {
-		loc.getChunk().getPersistentDataContainer().remove(key(loc));
+		Chunk chunk = loc.getChunk();
+		List<String> list = getList(chunk);
+		list.removeIf(e -> matchesLoc(e, loc));
+		saveList(chunk, list);
 	}
 
 	public static void cleanupChunk(Chunk chunk) {
-		String namespace = plugin.getName().toLowerCase();
-		List<NamespacedKey> toRemove = new ArrayList<>();
-
-		for (NamespacedKey k : chunk.getPersistentDataContainer().getKeys()) {
-			if (!k.getNamespace().equals(namespace)) continue;
-			if (!k.getKey().startsWith("pot_")) continue;
-			String[] parts = k.getKey().split("_");
-			if (parts.length != 4) continue;
+		List<String> list = getList(chunk);
+		list.removeIf(entry -> {
 			try {
+				String[] parts = entry.split(",", 5);
 				Location loc = new Location(chunk.getWorld(),
+						Integer.parseInt(parts[0]),
 						Integer.parseInt(parts[1]),
-						Integer.parseInt(parts[2]),
-						Integer.parseInt(parts[3]));
-				if (loc.getBlock().getType() != Material.WATER_CAULDRON) {
-					toRemove.add(k);
-				}
-			} catch (NumberFormatException ignored) {}
-		}
-
-		PersistentDataContainer pdc = chunk.getPersistentDataContainer();
-		for (NamespacedKey k : toRemove) {
-			pdc.remove(k);
-		}
+						Integer.parseInt(parts[2]));
+				return loc.getBlock().getType() != Material.WATER_CAULDRON;
+			} catch (Exception ignored) {
+				return true;
+			}
+		});
+		saveList(chunk, list);
 	}
 }
