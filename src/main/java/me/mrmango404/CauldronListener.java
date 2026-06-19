@@ -148,11 +148,7 @@ public class CauldronListener implements Listener {
 			Location oldLoc = block.getLocation();
 			Location newLoc = block.getRelative(direction).getLocation();
 
-			ColorLayerManager.getEntity(oldLoc).ifPresent(textDisplay -> {
-				PersistentDataSetter.getColorData(textDisplay).ifPresent(entityColor -> {
-					ColorLayerManager.teleport(textDisplay, newLoc);
-				});
-			});
+			ColorLayerManager.move(oldLoc, newLoc);
 
 			if (PotionDataStore.has(oldLoc)) {
 				PotionDataStore.getType(oldLoc).ifPresent(type -> {
